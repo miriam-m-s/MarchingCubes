@@ -275,26 +275,26 @@ void AMarching::OnConstruction(const FTransform& Transform)
 	
 }
 
+void AMarching::AddInstanceGrass(Chunk* CurrentChunk, UInstancedStaticMeshComponent* GrassMesh, FMeshInstanceDATA ChosenMesh, FVector WorldLocation)
+{
+	FTransform InstanceTransform;
+	InstanceTransform.SetLocation(WorldLocation);
+	InstanceTransform.SetRotation(FQuat::MakeFromEuler(FVector(0, 0, FMath::RandRange(0.f, 360.f))));
+	float randScaleConstant = FMath::RandRange(ChosenMesh.MinScale, ChosenMesh.MaxScale);
+	InstanceTransform.SetScale3D(FVector(randScaleConstant, randScaleConstant, randScaleConstant));
+
+	int32 GrassId = GrassMesh->AddInstance(InstanceTransform);
+	CurrentChunk->GetMeshid().Add(GrassId);
+	CurrentChunk->GrassInstancePositions.Add(WorldLocation);
+}
+
 void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 {
-	if (StaticMeshes.Num() <= 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No hay mallas asignadas en StaticMeshes."));
-		return;
-	}
+	if (StaticMeshes.Num() <= 0||!Chunks.Contains(chunkCoordinates))return;
 	
-	if (!Chunks.Contains(chunkCoordinates))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Chunk no encontrado en la posición (%d, %d)."), chunkCoordinates.X, chunkCoordinates.Y);
-		return;
-	}
-
 	Chunk* CurrentChunk = Chunks[chunkCoordinates];
-	if (!CurrentChunk)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Chunk encontrado es nulo."));
-		return;
-	}
+	if (!CurrentChunk)return;
+
 	UInstancedStaticMeshComponent* GrassMesh= CurrentChunk->GetGrassMesh();
 	GrassMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CurrentChunk->GetGrassMesh()->SetCastShadow(false);
@@ -315,38 +315,32 @@ void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 		FVector v1=Vertices[index1];
 		FVector v2=Vertices[index2];
 		FVector v3=Vertices[index3];
-
+		
 		//calculo de baricentro
 		FVector b1=(v1+v2+v3)/3;
 		FVector WorldLocation = b1;
-
-		FTransform InstanceTransform;
-		InstanceTransform.SetLocation(WorldLocation);
-		InstanceTransform.SetRotation(FQuat::MakeFromEuler(FVector(0, 0, FMath::RandRange(0.f, 360.f))));
-		float randScaleConstant = FMath::RandRange(ChosenMesh.MinScale, ChosenMesh.MaxScale);
-		InstanceTransform.SetScale3D(FVector(randScaleConstant, randScaleConstant, randScaleConstant));
-
-		int32 GrassId = GrassMesh->AddInstance(InstanceTransform);
-		CurrentChunk->GetMeshid().Add(GrassId);
-		CurrentChunk->GrassInstancePositions.Add(WorldLocation);  // <-- Guarda la posición
+		//calculo del area
+		float Area = 0.5f * FVector::CrossProduct(v2 - v1, v3 - v1).Size();
+		int GrassInstances=int(Area*Density*DensityMultiplyer);
+		for (int j=0;j<GrassInstances;j++)
+		{
+			float u = FMath::FRand();
+			float v = FMath::FRand();
+			if (u + v > 1.0f)
+			{
+				u = 1.0f - u;
+				v = 1.0f - v;
+			}
+			FVector RandomPoint = v1 + u * (v2 - v1) + v * (v3 - v1);
+			AddInstanceGrass(CurrentChunk, GrassMesh, ChosenMesh, RandomPoint);  
+			
+		}
+		
 	}
 		
 	
 
-	// for (const FVector& Vertex : Vertices)
-	// {
-	// 	FVector WorldLocation = Vertex;
-	//
-	// 	FTransform InstanceTransform;
-	// 	InstanceTransform.SetLocation(WorldLocation);
-	// 	InstanceTransform.SetRotation(FQuat::MakeFromEuler(FVector(0, 0, FMath::RandRange(0.f, 360.f))));
-	// 	float randScaleConstant = FMath::RandRange(ChosenMesh.MinScale, ChosenMesh.MaxScale);
-	// 	InstanceTransform.SetScale3D(FVector(randScaleConstant, randScaleConstant, randScaleConstant));
-	//
-	// 	int32 GrassId = GrassMesh->AddInstance(InstanceTransform);
-	// 	CurrentChunk->GetMeshid().Add(GrassId);
-	// 	CurrentChunk->GrassInstancePositions.Add(WorldLocation);  // <-- Guarda la posición
-	// }
+
 
 	
 }

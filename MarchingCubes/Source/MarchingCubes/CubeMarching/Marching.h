@@ -58,7 +58,10 @@ public:
 	UMaterialInterface* Material;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector worldPosition;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grass", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float Density;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grass")
+	float DensityMultiplyer=0.1f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grass")
 	TArray<FMeshInstanceDATA> StaticMeshes;
 	
@@ -70,6 +73,8 @@ public:
 	// void ConvertToStaticMesh();
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
+	void AddInstanceGrass(Chunk* CurrentChunk, UInstancedStaticMeshComponent* GrassMesh, FMeshInstanceDATA ChosenMesh,
+	                      FVector WorldLocation);
 
 private:
 	bool IsInBounds(int x, int y, int z) const;
