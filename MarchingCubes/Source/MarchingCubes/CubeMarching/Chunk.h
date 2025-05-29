@@ -1,6 +1,20 @@
 ﻿#pragma once
+#include "FMeshInstanceDATA.h"
+
 class UProceduralMeshComponent;
 class UInstancedStaticMeshComponent;
+
+struct FoliageInstance
+{
+	UInstancedStaticMeshComponent* MeshComponent;
+	FMeshInstanceDATA InstanceData;
+	FoliageInstance(UInstancedStaticMeshComponent* MeshComponent, FMeshInstanceDATA InstanceData)
+	{
+		this->MeshComponent = MeshComponent;
+		this->InstanceData = InstanceData;
+	}
+
+};
 class Chunk
 {
 	UProceduralMeshComponent* Mesh;
@@ -12,7 +26,7 @@ class Chunk
 	TArray<int32> Triangles;
 	TMap<FVector, int32> VertexMap;
 	FIntPoint chunkLocalSize;
-	TArray<UInstancedStaticMeshComponent*> GrassMesh;
+	TArray<FoliageInstance> GrassMesh;
 	TArray<FLinearColor> vertexColors;
 
 public:
@@ -21,7 +35,7 @@ public:
 	void resetMeshData();
 	// Métodos para acceder por referencia
 	UProceduralMeshComponent*& GetMesh();
-	TArray<UInstancedStaticMeshComponent*>& GetGrassMesh();         // puntero por referencia
+	TArray<FoliageInstance>& GetGrassMesh();         // puntero por referencia
 	TArray<float>& GetTerrainMap();
 	TArray<FVector>& GetVertices();
 	TArray<bool>& GetMeshBoolean();

@@ -26,7 +26,7 @@ UProceduralMeshComponent*& Chunk::GetMesh()
 	return Mesh;
 }
 
-TArray<UInstancedStaticMeshComponent*>&Chunk::GetGrassMesh()
+TArray<FoliageInstance>&Chunk::GetGrassMesh()
 {
 	return GrassMesh;
 }

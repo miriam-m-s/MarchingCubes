@@ -3,22 +3,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-
+#include "FMeshInstanceDATA.h"
 #include "Marching.generated.h"
-USTRUCT(BlueprintType)
-struct FMeshInstanceDATA
-{
-	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grass")
-	UStaticMesh* Mesh;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grass")
-	float MinScale = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grass")
-	float MaxScale = 1.0f;
-};
 class UProceduralMeshComponent;
 class Chunk;
 class UMaterialInterface;

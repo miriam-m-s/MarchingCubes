@@ -61,23 +61,30 @@ void AMarching::GenerateHole(FVector HitLocation)
 
 			if (CurrentChunk->GetMesh()) CurrentChunk->GetMesh()->DestroyComponent();
 
-			UInstancedStaticMeshComponent* GrassMesh = CurrentChunk->GetGrassMesh()[0];
-			if (GrassMesh)
+			for (FoliageInstance& GrassMesh : CurrentChunk->GetGrassMesh())
 			{
 				TArray<int32> IndicesToRemove;
-				for (int32 i = 0; i < CurrentChunk->GrassInstancePositions.Num(); ++i)
+
+				for (int32 i = 0; i < GrassMesh.MeshComponent->GetInstanceCount(); ++i)
 				{
-					FVector GrassPos = CurrentChunk->GrassInstancePositions[i];
-					float distSq = FVector::DistSquared(GrassPos, HitLocation);
-					if (distSq <= FMath::Square(Radius * TriangleScale))
+					FTransform InstanceTransform;
+					GrassMesh.MeshComponent->GetInstanceTransform(i, InstanceTransform, true);
+
+					FVector Position = InstanceTransform.GetLocation();
+					float Distance = FVector::Dist(Position, HitLocation);
+
+					if (Distance <= Radius * TriangleScale)
 					{
 						IndicesToRemove.Add(i);
 					}
 				}
+
+				// Orden descendente para evitar problemas de desplazamiento de índices
 				IndicesToRemove.Sort(TGreater<int32>());
+
 				for (int32 i : IndicesToRemove)
 				{
-					GrassMesh->RemoveInstance(i);
+					GrassMesh.MeshComponent->RemoveInstance(i);
 					CurrentChunk->GrassInstancePositions.RemoveAt(i);
 					CurrentChunk->GetMeshid().RemoveAt(i);
 				}
@@ -207,13 +214,16 @@ void AMarching::generateChunk(FIntPoint  chunkCoord,FIntPoint LocalChunkSize)
 
 	
 	Chunks[chunkCoord]->GetChunkLocalSize() = LocalChunkSize;
-	TArray<UInstancedStaticMeshComponent*> grassMesh=Chunks[chunkCoord]->GetGrassMesh();
+	TArray<FoliageInstance> grassMesh=Chunks[chunkCoord]->GetGrassMesh();
 	for (int i=0;i<StaticMeshes.Num();i++)
 	{
 		UInstancedStaticMeshComponent* fol=NewObject<UInstancedStaticMeshComponent>(this);
 		fol->RegisterComponent();
 		fol->SetStaticMesh(StaticMeshes[i].Mesh);
-		Chunks[chunkCoord]->GetGrassMesh().Add(fol);
+		fol->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+		fol->SetCastShadow(false);
+		fol->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
+		Chunks[chunkCoord]->GetGrassMesh().Add(FoliageInstance(fol,StaticMeshes[i]));
 	}
 	
 
@@ -241,13 +251,13 @@ void AMarching::DeleteTerrain()
 			}
 
 	
-			TArray<UInstancedStaticMeshComponent*>& GrassMeshes = ChunkPair.Value->GetGrassMesh();
-			for (UInstancedStaticMeshComponent* GrassMesh : GrassMeshes)
+			TArray<FoliageInstance>& GrassMeshes = ChunkPair.Value->GetGrassMesh();
+			for (FoliageInstance GrassMesh : GrassMeshes)
 			{
-				if (GrassMesh)
+				if (GrassMesh.MeshComponent)
 				{
-					GrassMesh->ClearInstances();
-					GrassMesh->DestroyComponent();
+					GrassMesh.MeshComponent->ClearInstances();
+					GrassMesh.MeshComponent->DestroyComponent();
 				}
 			}
 			GrassMeshes.Empty(); 
@@ -308,15 +318,12 @@ void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 	Chunk* CurrentChunk = Chunks[chunkCoordinates];
 	if (!CurrentChunk)return;
 	if (CurrentChunk->GetGrassMesh().Num()==0)return;
-	UInstancedStaticMeshComponent* GrassMesh= CurrentChunk->GetGrassMesh()[0];
-	GrassMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-	GrassMesh->SetCastShadow(false);
+	
 	const TArray<FVector>& Vertices = CurrentChunk->GetVertices();
 	TArray<int32>&Triangles=CurrentChunk->GetTriangles();
 	UE_LOG(LogTemp, Warning, TEXT("Chunk tiene %d vértices."), Vertices.Num());
-	 FMeshInstanceDATA ChosenMesh = StaticMeshes[FMath::RandRange(0, StaticMeshes.Num() - 1)];
-	// GrassMesh->SetStaticMesh(ChosenMesh.Mesh);
-	GrassMesh->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
+	 
+	
 	int count = 0;
 	CurrentChunk->GrassInstancePositions.Empty();  // Limpia si ya tenía
 	for (int i=0;i<Triangles.Num();i+=3)
@@ -337,6 +344,7 @@ void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 		int GrassInstances=int(Area*Density*DensityMultiplyer);
 		for (int j=0;j<GrassInstances;j++)
 		{
+			FoliageInstance ChosenMesh = CurrentChunk->GetGrassMesh()[FMath::RandRange(0, StaticMeshes.Num() - 1)];
 			float u = FMath::FRand();
 			float v = FMath::FRand();
 			if (u + v > 1.0f)
@@ -345,7 +353,7 @@ void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 				v = 1.0f - v;
 			}
 			FVector RandomPoint = v1 + u * (v2 - v1) + v * (v3 - v1);
-			AddInstanceGrass(CurrentChunk, GrassMesh, ChosenMesh, RandomPoint);  
+			AddInstanceGrass(CurrentChunk, ChosenMesh.MeshComponent, ChosenMesh.InstanceData, RandomPoint);  
 			
 		}
 		
