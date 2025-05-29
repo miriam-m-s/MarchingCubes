@@ -76,8 +76,36 @@ void ARayCastClicker::Tick(float DeltaTime)
 	HoleGen.Broadcast(FVector(0, 0, 0));
 	// ACTUALIZA EL TIMELINE AQUÍ
 	PostProTimeline.TickTimeline(DeltaTime);
-	// if (!PostProEffect)return;
-	// float CurveValue = FloatCurve->GetFloatValue(ElapsedTime);
+	
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) return;
+
+	FVector WorldLocation, WorldDirection;
+	if (PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
+	{
+		FVector Start = WorldLocation;
+		FVector End = Start + WorldDirection * 10000.0f;
+
+		FHitResult HitResult;
+		FCollisionQueryParams Params;
+		Params.bTraceComplex = true;
+		Params.AddIgnoredActor(this);
+
+		if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, Params))
+		{
+			FVector HitLocation = HitResult.ImpactPoint;
+			UE_LOG(LogTemp, Warning, TEXT("¡Colisión en: %s"), *HitLocation.ToString());
+			AMarching* Terrain = Cast<AMarching>(HitResult.GetActor());
+			if (!Terrain && HitResult.Component.IsValid())
+			{
+				Terrain = Cast<AMarching>(HitResult.GetComponent()->GetOwner());
+			}
+
+			if (Terrain)
+			DrawDebugSphere(GetWorld(), HitLocation, 20.0f, 12, FColor::Red, false, 2.0f);
+		}
+	}
+			// Verificamos si el actor golpeado es de tipo AMarching o está contenido dentro de uno
 }
 void ARayCastClicker::HandleMouseClick()
 {
