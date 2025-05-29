@@ -299,16 +299,26 @@ void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 	GrassMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
 	CurrentChunk->GetGrassMesh()->SetCastShadow(false);
 	const TArray<FVector>& Vertices = CurrentChunk->GetVertices();
+	TArray<int32>&Triangles=CurrentChunk->GetTriangles();
 	UE_LOG(LogTemp, Warning, TEXT("Chunk tiene %d vértices."), Vertices.Num());
 	FMeshInstanceDATA ChosenMesh = StaticMeshes[FMath::RandRange(0, StaticMeshes.Num() - 1)];
 	GrassMesh->SetStaticMesh(ChosenMesh.Mesh);
 	GrassMesh->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 	int count = 0;
 	CurrentChunk->GrassInstancePositions.Empty();  // Limpia si ya tenía
-
-	for (const FVector& Vertex : Vertices)
+	for (int i=0;i<Triangles.Num();i+=3)
 	{
-		FVector WorldLocation = Vertex;
+		int32 index1=Triangles[i];
+		int32 index2=Triangles[i+1];
+		int32 index3=Triangles[i+2];
+
+		FVector v1=Vertices[index1];
+		FVector v2=Vertices[index2];
+		FVector v3=Vertices[index3];
+
+		//calculo de baricentro
+		FVector b1=(v1+v2+v3)/3;
+		FVector WorldLocation = b1;
 
 		FTransform InstanceTransform;
 		InstanceTransform.SetLocation(WorldLocation);
@@ -320,6 +330,23 @@ void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 		CurrentChunk->GetMeshid().Add(GrassId);
 		CurrentChunk->GrassInstancePositions.Add(WorldLocation);  // <-- Guarda la posición
 	}
+		
+	
+
+	// for (const FVector& Vertex : Vertices)
+	// {
+	// 	FVector WorldLocation = Vertex;
+	//
+	// 	FTransform InstanceTransform;
+	// 	InstanceTransform.SetLocation(WorldLocation);
+	// 	InstanceTransform.SetRotation(FQuat::MakeFromEuler(FVector(0, 0, FMath::RandRange(0.f, 360.f))));
+	// 	float randScaleConstant = FMath::RandRange(ChosenMesh.MinScale, ChosenMesh.MaxScale);
+	// 	InstanceTransform.SetScale3D(FVector(randScaleConstant, randScaleConstant, randScaleConstant));
+	//
+	// 	int32 GrassId = GrassMesh->AddInstance(InstanceTransform);
+	// 	CurrentChunk->GetMeshid().Add(GrassId);
+	// 	CurrentChunk->GrassInstancePositions.Add(WorldLocation);  // <-- Guarda la posición
+	// }
 
 	
 }
