@@ -12,7 +12,7 @@ class Chunk
 	TArray<int32> Triangles;
 	TMap<FVector, int32> VertexMap;
 	FIntPoint chunkLocalSize;
-	UInstancedStaticMeshComponent* GrassMesh;
+	TArray<UInstancedStaticMeshComponent*> GrassMesh;
 	TArray<FLinearColor> vertexColors;
 
 public:
@@ -21,7 +21,7 @@ public:
 	void resetMeshData();
 	// Métodos para acceder por referencia
 	UProceduralMeshComponent*& GetMesh();
-	UInstancedStaticMeshComponent*& GetGrassMesh();         // puntero por referencia
+	TArray<UInstancedStaticMeshComponent*>& GetGrassMesh();         // puntero por referencia
 	TArray<float>& GetTerrainMap();
 	TArray<FVector>& GetVertices();
 	TArray<bool>& GetMeshBoolean();

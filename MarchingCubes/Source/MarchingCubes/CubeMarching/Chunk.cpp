@@ -3,7 +3,7 @@
 #include "ProceduralMeshComponent.h"
 #include "DynamicMesh/DynamicMesh3.h"
 
-Chunk::Chunk():Mesh(nullptr),GrassMesh(nullptr)
+Chunk::Chunk():Mesh(nullptr)
 {
 }
 
@@ -26,11 +26,10 @@ UProceduralMeshComponent*& Chunk::GetMesh()
 	return Mesh;
 }
 
-UInstancedStaticMeshComponent*& Chunk::GetGrassMesh()
+TArray<UInstancedStaticMeshComponent*>&Chunk::GetGrassMesh()
 {
 	return GrassMesh;
 }
-
 TArray<float>& Chunk::GetTerrainMap()
 {
 	return TerrainMap;

@@ -61,7 +61,7 @@ void AMarching::GenerateHole(FVector HitLocation)
 
 			if (CurrentChunk->GetMesh()) CurrentChunk->GetMesh()->DestroyComponent();
 
-			UInstancedStaticMeshComponent* GrassMesh = CurrentChunk->GetGrassMesh();
+			UInstancedStaticMeshComponent* GrassMesh = CurrentChunk->GetGrassMesh()[0];
 			if (GrassMesh)
 			{
 				TArray<int32> IndicesToRemove;
@@ -207,13 +207,17 @@ void AMarching::generateChunk(FIntPoint  chunkCoord,FIntPoint LocalChunkSize)
 
 	
 	Chunks[chunkCoord]->GetChunkLocalSize() = LocalChunkSize;
-	Chunks[chunkCoord]->GetGrassMesh() = NewObject<UInstancedStaticMeshComponent>(this);
-	if (!	Chunks[chunkCoord]->GetGrassMesh())
+	TArray<UInstancedStaticMeshComponent*> grassMesh=Chunks[chunkCoord]->GetGrassMesh();
+	for (int i=0;i<StaticMeshes.Num();i++)
 	{
-		UE_LOG(LogTemp, Error, TEXT("No se pudo crear el componente de césped."));
-		return;
+		UInstancedStaticMeshComponent* fol=NewObject<UInstancedStaticMeshComponent>(this);
+		fol->RegisterComponent();
+		fol->SetStaticMesh(StaticMeshes[i].Mesh);
+		Chunks[chunkCoord]->GetGrassMesh().Add(fol);
 	}
-	Chunks[chunkCoord]->GetGrassMesh()->RegisterComponent();
+	
+
+	
 	
 }
 
@@ -229,20 +233,29 @@ void AMarching::DeleteTerrain()
 	{
 		if (ChunkPair.Value)
 		{
+			// Destroy the main mesh component
 			if (ChunkPair.Value->GetMesh())
 			{
-				ChunkPair.Value->GetMesh()->DestroyComponent(); // Elimina el componente visual
+				ChunkPair.Value->GetMesh()->DestroyComponent();
+				ChunkPair.Value->GetMesh()=nullptr; 
 			}
-			if (ChunkPair.Value->GetGrassMesh())
+
+	
+			TArray<UInstancedStaticMeshComponent*>& GrassMeshes = ChunkPair.Value->GetGrassMesh();
+			for (UInstancedStaticMeshComponent* GrassMesh : GrassMeshes)
 			{
-				ChunkPair.Value->GetGrassMesh()->ClearInstances();
-				ChunkPair.Value->GetGrassMesh()->DestroyComponent();
+				if (GrassMesh)
+				{
+					GrassMesh->ClearInstances();
+					GrassMesh->DestroyComponent();
+				}
 			}
+			GrassMeshes.Empty(); 
+
 			delete ChunkPair.Value;
 			ChunkPair.Value = nullptr;
 		}
 	}
-	
 
 
 	Chunks.Empty();
@@ -294,15 +307,15 @@ void AMarching::GenerateFoliage(FIntPoint chunkCoordinates)
 	
 	Chunk* CurrentChunk = Chunks[chunkCoordinates];
 	if (!CurrentChunk)return;
-
-	UInstancedStaticMeshComponent* GrassMesh= CurrentChunk->GetGrassMesh();
+	if (CurrentChunk->GetGrassMesh().Num()==0)return;
+	UInstancedStaticMeshComponent* GrassMesh= CurrentChunk->GetGrassMesh()[0];
 	GrassMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-	CurrentChunk->GetGrassMesh()->SetCastShadow(false);
+	GrassMesh->SetCastShadow(false);
 	const TArray<FVector>& Vertices = CurrentChunk->GetVertices();
 	TArray<int32>&Triangles=CurrentChunk->GetTriangles();
 	UE_LOG(LogTemp, Warning, TEXT("Chunk tiene %d vértices."), Vertices.Num());
-	FMeshInstanceDATA ChosenMesh = StaticMeshes[FMath::RandRange(0, StaticMeshes.Num() - 1)];
-	GrassMesh->SetStaticMesh(ChosenMesh.Mesh);
+	 FMeshInstanceDATA ChosenMesh = StaticMeshes[FMath::RandRange(0, StaticMeshes.Num() - 1)];
+	// GrassMesh->SetStaticMesh(ChosenMesh.Mesh);
 	GrassMesh->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 	int count = 0;
 	CurrentChunk->GrassInstancePositions.Empty();  // Limpia si ya tenía
