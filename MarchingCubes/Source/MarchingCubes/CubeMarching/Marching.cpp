@@ -1,48 +1,29 @@
-﻿#include "Marching.h"
-#include"Chunk.h"
-#include "FrameTypes.h"
+﻿// Core Unreal includes
+#include "Marching.h"
+#include "Chunk.h"
 #include "ProceduralMeshComponent.h"
-#include "AssetRegistry/AssetRegistryModule.h"
 #include "Components/InputComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#include "VT/RuntimeVirtualTextureVolume.h"
-	
-#include "Field/FieldSystemNoiseAlgo.h"
 #include "Engine/StaticMesh.h"
 #include "GameFramework/PlayerController.h"
+
+// VT and Asset tools
+#include "VT/RuntimeVirtualTextureVolume.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+
+// Field system and geometry tools
+#include "Field/FieldSystemNoiseAlgo.h"
 #include "Operations/EmbedSurfacePath.h"
+
+// Frame types
+#include "FrameTypes.h"
 
 AMarching::AMarching():RuntimeVolume(nullptr)
 {
-	
-	
-
-	
 }
 
-void AMarching::GenerateHole(FVector HitLocation)
+void AMarching::UpdateChunksAffectedByHole(FVector HitLocation, int centerX, int centerY, const int Radius)
 {
-	FVector localPos = HitLocation / TriangleScale;
-	UE_LOG(LogTemp, Warning, TEXT("LocalPos: %s"), *localPos.ToString());
-
-	int centerX = FMath::FloorToInt(localPos.X);
-	int centerY = FMath::FloorToInt(localPos.Y);
-	int centerZ = FMath::FloorToInt(localPos.Z);
-	UE_LOG(LogTemp, Warning, TEXT("Center coords: X=%d, Y=%d, Z=%d"), centerX, centerY, centerZ);
-
-	if (!IsInBounds(centerX, centerY, centerZ))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Center is out of bounds!"));
-		return;
-	}
-
-	const int Radius = 5;
-	ApplySphericalHole(centerX, centerY, centerZ, Radius);
-
-
-
-	
-
 	int radiusInVoxels = Radius;
 	int minX = FMath::FloorToInt((centerX - radiusInVoxels) / float(ChunkSize.X));
 	int maxX = FMath::FloorToInt((centerX + radiusInVoxels) / float(ChunkSize.X));
@@ -101,13 +82,26 @@ void AMarching::GenerateHole(FVector HitLocation)
 			BuildMesh(chunkCoord);
 		}
 	}
-
-
-
-
-
 }
-bool AMarching::IsInBounds(int x, int y, int z) const
+
+void AMarching::GenerateHole(FVector HitLocation,const float Radius)
+{
+	FVector localPos = HitLocation / TriangleScale;
+
+
+	int centerX = FMath::FloorToInt(localPos.X);
+	int centerY = FMath::FloorToInt(localPos.Y);
+	int centerZ = FMath::FloorToInt(localPos.Z);
+	
+
+	if (!IsInBounds(centerX, centerY, centerZ))return;
+	
+	ApplySphericalHole(centerX, centerY, centerZ, Radius);
+	
+	UpdateChunksAffectedByHole(HitLocation, centerX, centerY, Radius);
+	
+}
+FORCEINLINE bool AMarching::IsInBounds(int x, int y, int z) const
 {
 	return x >= 0 && x < GridSize.X &&
 		   y >= 0 && y < GridSize.Y &&
@@ -567,7 +561,7 @@ void AMarching::MarchCube(FVector pos,float* cube,FIntPoint chunkCoordinates)
 
 
 
-const int AMarching::getTerrainIndex( int x, int y, int z)
+FORCEINLINE const int AMarching::getTerrainIndex( int x, int y, int z)
 {
 	return x + y * (GridSize.X + 1) + z * (GridSize.X + 1) * (GridSize.Y + 1);
 

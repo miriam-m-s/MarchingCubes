@@ -19,7 +19,8 @@ class MARCHINGCUBES_API AMarching : public AActor
 
 public:
 	AMarching();
-	void GenerateHole(FVector HitLocation);
+	void UpdateChunksAffectedByHole(FVector HitLocation, int centerX, int centerY, int Radius);
+	void GenerateHole(FVector HitLocation,const float Radius);
 
 
 protected:
@@ -56,8 +57,7 @@ public:
 	void GenerateTerrain();
 	UFUNCTION(CallInEditor, Category = "Marching Cubes")
 	void DeleteTerrain();
-	// UFUNCTION(CallInEditor, Category = "Marching Cubes")
-	// void ConvertToStaticMesh();
+	
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void AddInstanceGrass(Chunk* CurrentChunk, UInstancedStaticMeshComponent* GrassMesh, FMeshInstanceDATA ChosenMesh,
@@ -151,7 +151,7 @@ private:
 		{ FVector(1, 0, 0), FVector(1, 0, 1) },
 		{ FVector(1, 1, 0), FVector(1, 1, 1) },
 		{ FVector(0, 1, 0), FVector(0, 1, 1) }
-	};;
+	};
 
 	// Triangulation table for the Marching Cubes algorithm.
 	// Each row represents one of the 256 possible cases of how an isosurface intersects a cube,

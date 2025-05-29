@@ -2,7 +2,7 @@
 
 
 #include "RayCastClicker.h"
-
+#include "Engine/PostProcessVolume.h"
 
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
@@ -10,11 +10,33 @@
 #include "Marching.h"
 
 // Sets default values
-ARayCastClicker::ARayCastClicker()
+ARayCastClicker::ARayCastClicker():PostProEffect(false)
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+}
+
+void ARayCastClicker::HandlePostPro(float Value)
+{
+	
+	if (PostProcessVolume)
+	{
+		
+		UE_LOG(LogTemp, Warning, TEXT("post Process Volume: %f"),Value);
+		PostProcessVolume->Settings.bOverride_SceneFringeIntensity = true;
+		PostProcessVolume->Settings.SceneFringeIntensity = Value; // Value viene de la curva
+	}
+}
+void ARayCastClicker::OnPostProFinished()
+{
+	
+
+	if (PostProcessVolume)
+	{
+		// Apaga el efecto si lo deseas
+		PostProcessVolume->Settings.SceneFringeIntensity = 0.0f;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -33,14 +55,29 @@ void ARayCastClicker::BeginPlay()
 	{
 		InputComponent->BindAction("LeftClick", IE_Pressed, this, &ARayCastClicker::HandleMouseClick);
 	}
-	
+	if (FloatCurve)
+	{
+		FOnTimelineFloat ProgressFunction;
+		ProgressFunction.BindUFunction(this, FName("HandlePostPro"));
+		PostProTimeline.AddInterpFloat(FloatCurve, ProgressFunction);
+
+		FOnTimelineEvent FinishedFunction;
+		FinishedFunction.BindUFunction(this, FName("OnPostProFinished"));
+		PostProTimeline.SetTimelineFinishedFunc(FinishedFunction);
+
+		PostProTimeline.SetLooping(false);
+	}
 }
 
 // Called every frame
 void ARayCastClicker::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	HoleGen.Broadcast(FVector(0, 0, 0));
+	// ACTUALIZA EL TIMELINE AQUÍ
+	PostProTimeline.TickTimeline(DeltaTime);
+	// if (!PostProEffect)return;
+	// float CurveValue = FloatCurve->GetFloatValue(ElapsedTime);
 }
 void ARayCastClicker::HandleMouseClick()
 {
@@ -84,7 +121,14 @@ void ARayCastClicker::HandleMouseClick()
 					ENCPoolMethod::None,
 					true           // PreciseLocation
 				);
-				Terrain->GenerateHole(HitLocation);
+				
+				Terrain->GenerateHole(HitLocation,Radius);
+				PostProEffect = true;
+				if (FloatCurve && !PostProTimeline.IsPlaying())
+				{
+					PostProTimeline.PlayFromStart();
+				}
+				
 				// FActorSpawnParameters SpawnParams;
 				// GetWorld()->SpawnActor<AExpandingSphere>(AExpandingSphere::StaticClass(), HitLocation, FRotator::ZeroRotator, SpawnParams);
 				
