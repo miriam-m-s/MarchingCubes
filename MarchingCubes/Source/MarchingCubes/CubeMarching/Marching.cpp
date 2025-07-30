@@ -40,7 +40,7 @@ void AMarching::UpdateChunksAffectedByHole(FVector HitLocation, int centerX, int
 			Chunk* CurrentChunk = Chunks[chunkCoord];
 			if (!CurrentChunk) continue;
 
-			if (CurrentChunk->GetMesh()) CurrentChunk->GetMesh()->DestroyComponent();
+			
 
 			for (FoliageInstance& GrassMesh : CurrentChunk->GetGrassMesh())
 			{
@@ -71,11 +71,14 @@ void AMarching::UpdateChunksAffectedByHole(FVector HitLocation, int centerX, int
 				}
 			}
 
-			// Recrear malla
-			UProceduralMeshComponent* NewMesh = NewObject<UProceduralMeshComponent>(this);
-			NewMesh->RegisterComponent();
-			NewMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-			CurrentChunk->GetMesh() = NewMesh;
+			// // Recrear malla
+			// UProceduralMeshComponent* NewMesh = NewObject<UProceduralMeshComponent>(this);
+			// NewMesh->RegisterComponent();
+			// NewMesh->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+			if (CurrentChunk->GetMesh()) 
+			{
+				CurrentChunk->GetMesh()->ClearAllMeshSections(); // Elimina la geometría
+			}
 			CurrentChunk->resetMeshData();
 
 			IterateChunkVoxels(chunkX, chunkY, CurrentChunk->GetChunkLocalSize());

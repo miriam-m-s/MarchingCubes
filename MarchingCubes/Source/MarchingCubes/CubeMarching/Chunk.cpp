@@ -18,6 +18,7 @@ void Chunk::resetMeshData()
 	vertexColors.Empty();
 	MeshBoolean.Empty();
 
+
 	
 }
 
